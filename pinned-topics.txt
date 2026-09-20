@@ -1,0 +1,5 @@
+LLM agents, tool use, function calling, multi-step planning, agent frameworks and orchestration
+efficient inference, quantization, small language models, on-device and local LLM deployment, KV-cache and serving optimization
+mechanistic interpretability, model internals, probing, feature attribution, circuits and representation analysis
+generalization in supervised learning, regularization, calibration, evaluation methodology, distribution shift and overfitting
+neuro-symbolic AI, reasoning with LLMs, logic and constraint solving, verification of model outputs

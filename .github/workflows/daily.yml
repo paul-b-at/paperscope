@@ -1,0 +1,29 @@
+name: paperscope
+
+on:
+  schedule:
+    - cron: "25 6 * * 1-5"   # 08:25 Vienna during CEST (Mar–Oct)
+    - cron: "25 7 * * 1-5"   # 08:25 Vienna during CET  (Nov–Feb)
+  workflow_dispatch:
+
+jobs:
+  digest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+      - name: Run paperscope
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+          NOTION_READING_QUEUE_DB: ${{ secrets.NOTION_READING_QUEUE_DB }}
+          POKE_API_KEY: ${{ secrets.POKE_API_KEY }}
+        run: bun run src/index.ts ${{ github.event_name == 'workflow_dispatch' && '--force' || '' }}
+      - name: Alert on failure
+        if: failure()
+        run: |
+          curl 'https://poke.com/api/v1/inbound/api-message' \
+            -H "Authorization: Bearer ${{ secrets.POKE_API_KEY }}" \
+            -H "Content-Type: application/json" \
+            -d '{"message": "paperscope failed this morning. Just tell me briefly, I will check the logs myself."}'

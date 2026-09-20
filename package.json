@@ -1,0 +1,20 @@
+{
+  "name": "paperscope",
+  "module": "src/index.ts",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "start": "bun run src/index.ts",
+    "test": "bun test"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.4.2"
+  },
+  "peerDependencies": {
+    "typescript": "^7.0.2"
+  },
+  "dependencies": {
+    "@notionhq/client": "^5.26.0",
+    "fast-xml-parser": "^5.11.1"
+  }
+}
