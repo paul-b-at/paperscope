@@ -13,6 +13,26 @@ jobs:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
       - run: bun install --frozen-lockfile
+
+      - name: Check secrets
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+          NOTION_READING_QUEUE_DB: ${{ secrets.NOTION_READING_QUEUE_DB }}
+          POKE_API_KEY: ${{ secrets.POKE_API_KEY }}
+        run: |
+          missing=""
+          for name in GEMINI_API_KEY NOTION_TOKEN NOTION_READING_QUEUE_DB POKE_API_KEY; do
+            if [ -z "${!name}" ]; then
+              missing="$missing $name"
+            fi
+          done
+          if [ -n "$missing" ]; then
+            echo "::error::Missing repository secrets:$missing"
+            exit 1
+          fi
+          echo "all four secrets present"
+
       - name: Run paperscope
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
@@ -20,10 +40,17 @@ jobs:
           NOTION_READING_QUEUE_DB: ${{ secrets.NOTION_READING_QUEUE_DB }}
           POKE_API_KEY: ${{ secrets.POKE_API_KEY }}
         run: bun run src/index.ts ${{ github.event_name == 'workflow_dispatch' && '--force' || '' }}
+
       - name: Alert on failure
         if: failure()
+        env:
+          POKE_API_KEY: ${{ secrets.POKE_API_KEY }}
         run: |
-          curl 'https://poke.com/api/v1/inbound/api-message' \
-            -H "Authorization: Bearer ${{ secrets.POKE_API_KEY }}" \
+          if [ -z "$POKE_API_KEY" ]; then
+            echo "::error::POKE_API_KEY is empty - no failure alert could be sent. Check these logs manually."
+            exit 1
+          fi
+          curl --fail-with-body -sS 'https://poke.com/api/v1/inbound/api-message' \
+            -H "Authorization: Bearer $POKE_API_KEY" \
             -H "Content-Type: application/json" \
             -d '{"message": "paperscope failed this morning. Just tell me briefly, I will check the logs myself."}'
