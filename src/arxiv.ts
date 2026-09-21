@@ -35,7 +35,12 @@ const parser = new XMLParser({
   isArray: (name) => ["entry", "author", "link", "category"].includes(name),
 });
 
-const USER_AGENT = "paperscope/1.0 (daily arxiv digest; mailto:paperscope@local)";
+// arXiv's harvesting filter answers 406 to requests that look scripted. It wants
+// an explicit Accept and a User-Agent with a reachable contact behind it.
+const USER_AGENT =
+  "paperscope/1.0 (+https://github.com/paul-b-at/paperscope)";
+const ACCEPT = "application/atom+xml, application/xml;q=0.9, */*;q=0.8";
+const RETRYABLE_STATUSES = new Set([408, 429, 500, 502, 503, 504]);
 
 export function normalizeArxivId(raw: string): string {
   const last = raw.split("/").pop() ?? raw;
@@ -136,6 +141,16 @@ async function sleep(ms: number): Promise<void> {
   await new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+class ArxivHttpError extends Error {
+  readonly status: number;
+
+  constructor(status: number, body: string) {
+    super(`arXiv HTTP ${status}: ${body.slice(0, 300)}`);
+    this.name = "ArxivHttpError";
+    this.status = status;
+  }
+}
+
 async function fetchArxivXml(
   fetchFn: FetchLike,
   pause: (ms: number) => Promise<void>,
@@ -144,18 +159,23 @@ async function fetchArxivXml(
 
   const attempt = async (): Promise<string> => {
     const response = await fetchFn(url, {
-      headers: { "User-Agent": USER_AGENT },
+      headers: {
+        "User-Agent": USER_AGENT,
+        Accept: ACCEPT,
+      },
     });
     if (!response.ok) {
-      const body = await response.text();
-      throw new Error(`arXiv HTTP ${response.status}: ${body}`);
+      throw new ArxivHttpError(response.status, await response.text());
     }
     return response.text();
   };
 
   try {
     return await attempt();
-  } catch {
+  } catch (error) {
+    const retryable =
+      !(error instanceof ArxivHttpError) || RETRYABLE_STATUSES.has(error.status);
+    if (!retryable) throw error;
     await pause(ARXIV_RETRY_DELAY_MS);
     return attempt();
   }

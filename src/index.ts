@@ -3,8 +3,11 @@ import {
   loadConfig,
   LOOKBACK_MS,
   MAX_EMBED_PAPERS,
+  RUN_WINDOW_END_HOUR,
+  RUN_WINDOW_START_HOUR,
   shouldRunScheduled,
   TOPICS_PATH,
+  viennaHour,
 } from "./config";
 import { embedTexts } from "./embed";
 import { writeToNotion } from "./notion";
@@ -110,7 +113,9 @@ export async function run(argv: string[] = process.argv.slice(2)): Promise<void>
   const skipHourGuard =
     force || dryRun || process.env.GITHUB_EVENT_NAME === "workflow_dispatch";
   if (!skipHourGuard && !shouldRunScheduled()) {
-    console.log("skipping run: Vienna hour is not 8");
+    console.log(
+      `skipping run: Vienna hour is ${viennaHour()}, outside the ${RUN_WINDOW_START_HOUR}:00-${RUN_WINDOW_END_HOUR}:00 delivery window`,
+    );
     return;
   }
 
