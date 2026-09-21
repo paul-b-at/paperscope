@@ -19,7 +19,11 @@ export const GEMINI_EMBED_BATCH_PAUSE_MS = 65_000;
 export const GEMINI_RETRY_DELAY_MS = 30_000;
 export const POKE_INBOUND_URL = "https://poke.com/api/v1/inbound/api-message";
 export const VIENNA_TZ = "Europe/Vienna";
-export const TARGET_VIENNA_HOUR = 8;
+// The cron targets 08:25 Vienna, but GitHub delays or drops scheduled runs under
+// load. Accept the whole morning window so a late run still delivers instead of
+// exiting 0 without a word.
+export const RUN_WINDOW_START_HOUR = 8;
+export const RUN_WINDOW_END_HOUR = 12;
 export const LOOKBACK_MS = 24 * 60 * 60 * 1000;
 
 export const ENV_KEYS = [
@@ -104,5 +108,6 @@ export function viennaIsoDate(date = new Date()): string {
 }
 
 export function shouldRunScheduled(date = new Date()): boolean {
-  return viennaHour(date) === TARGET_VIENNA_HOUR;
+  const hour = viennaHour(date);
+  return hour >= RUN_WINDOW_START_HOUR && hour < RUN_WINDOW_END_HOUR;
 }
