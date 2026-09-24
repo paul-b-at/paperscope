@@ -55,13 +55,15 @@ bun test
 bun run src/arxiv.ts
 bun run src/index.ts --dry-run
 bun run src/index.ts --test-push
-bun run src/index.ts --force
+bun run src/index.ts
 ```
 
-`--dry-run` scores and summarizes but writes nothing to Notion or Poke. `--test-push` sends one fake paper so you can confirm Poke relays the digest verbatim. `--force` bypasses the 08:00 Vienna-hour guard. `--lookback-hours 96` widens the default 24-hour window (useful on weekends).
+`--dry-run` scores and summarizes but writes nothing to Notion or Poke. `--test-push` sends one fake paper so you can confirm Poke relays the digest verbatim. `--lookback-hours 96` widens the default 24-hour window (useful on weekends).
 
 ## Schedule
 
-GitHub Actions runs Monday–Friday at 08:25 Europe/Vienna. Two cron lines cover CET and CEST; the script exits unless the current Vienna hour is 8. Add the four secrets above to the repository, then use **Run workflow** once to confirm a Notion row and a phone message.
+GitHub Actions runs Monday-Friday at 08:25 Europe/Vienna. Two cron lines cover CET and CEST.
+
+The script does not check the clock. Whenever it runs - on schedule, delayed, or via **Run workflow** - it fetches, scores and delivers. The cron is the only thing deciding when a digest goes out.
 
 The similarity cutoff is `THRESHOLD = 0.35` in `src/config.ts`.
