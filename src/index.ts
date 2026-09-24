@@ -1,14 +1,5 @@
 import { fetchRecent } from "./arxiv";
-import {
-  loadConfig,
-  LOOKBACK_MS,
-  MAX_EMBED_PAPERS,
-  RUN_WINDOW_END_HOUR,
-  RUN_WINDOW_START_HOUR,
-  shouldRunScheduled,
-  TOPICS_PATH,
-  viennaHour,
-} from "./config";
+import { loadConfig, LOOKBACK_MS, MAX_EMBED_PAPERS, TOPICS_PATH } from "./config";
 import { embedTexts } from "./embed";
 import { writeToNotion } from "./notion";
 import { pushToPoke, TEST_PUSH_PAPER } from "./poke";
@@ -38,14 +29,12 @@ function parseLookbackHours(argv: string[]): number | undefined {
 function parseFlags(argv: string[]): {
   dryRun: boolean;
   testPush: boolean;
-  force: boolean;
   lookbackMs: number;
 } {
   const hours = parseLookbackHours(argv);
   return {
     dryRun: argv.includes("--dry-run"),
     testPush: argv.includes("--test-push"),
-    force: argv.includes("--force"),
     lookbackMs: hours ? hours * 60 * 60 * 1000 : LOOKBACK_MS,
   };
 }
@@ -101,21 +90,12 @@ async function scoreAndRank(papers: Awaited<ReturnType<typeof fetchRecent>>) {
 }
 
 export async function run(argv: string[] = process.argv.slice(2)): Promise<void> {
-  const { dryRun, testPush, force, lookbackMs } = parseFlags(argv);
+  const { dryRun, testPush, lookbackMs } = parseFlags(argv);
 
   if (testPush) {
     loadConfig(["POKE_API_KEY"]);
     await pushToPoke([TEST_PUSH_PAPER], { skipNotion: true });
     console.log("test push sent");
-    return;
-  }
-
-  const skipHourGuard =
-    force || dryRun || process.env.GITHUB_EVENT_NAME === "workflow_dispatch";
-  if (!skipHourGuard && !shouldRunScheduled()) {
-    console.log(
-      `skipping run: Vienna hour is ${viennaHour()}, outside the ${RUN_WINDOW_START_HOUR}:00-${RUN_WINDOW_END_HOUR}:00 delivery window`,
-    );
     return;
   }
 
